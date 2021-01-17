@@ -15,7 +15,7 @@ pub trait EventHandler {
     ) {
     }
 
-    fn on_events_api(&mut self) {}
+    fn on_events_api(&mut self, payload: protocol::EventsApiPayload) {}
 }
 
 #[derive(Debug, Clone)]
@@ -83,6 +83,18 @@ pub async fn run<H: EventHandler + ?Sized>(token: &str, handler: &mut H) -> Resu
                         "refresh_requested" => Ok(DisconnectReason::RefreshRequested),
                         s => Ok(DisconnectReason::Other(String::from(s))),
                     }
+                }
+                Ok(protocol::Message::EventsApi { envelope_id, payload }) => {
+                    ws.send(tungstenite::Message::text(
+                        serde_json::to_string(&protocol::Acknowledge {
+                            envelope_id: &envelope_id,
+                            payload: None,
+                        })
+                        .expect("Failed to serialize ack"),
+                    ))
+                    .await?;
+
+                    handler.on_events_api(payload);
                 }
                 Err(e) => {
                     log::error!("Failed to parse incoming message: {}: {:?}", t, e);

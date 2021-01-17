@@ -16,6 +16,14 @@ impl slack_socket_mode_client::EventHandler for EventHandler {
         _: u32,
         d: slack_socket_mode_client::protocol::DebugInfo,
     ) {
-        println!("Hello! approx_connection_time: {}s", d.approximate_connection_time.unwrap_or(0));
+        println!(
+            "Hello! host = {}, approx_connection_time: {}s",
+            d.host,
+            d.approximate_connection_time.unwrap_or(0)
+        );
+    }
+
+    fn on_events_api(&mut self, payload: slack_socket_mode_client::protocol::EventsApiPayload) {
+        println!("event payload: {:?}", payload);
     }
 }
