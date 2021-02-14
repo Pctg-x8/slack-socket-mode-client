@@ -70,34 +70,38 @@ pub async fn run<H: EventHandler + ?Sized>(token: &str, handler: &mut H) -> Resu
 
     while let Some(msg) = ws.next().await {
         match msg? {
-            tungstenite::Message::Text(t) => match serde_json::from_str(&t) {
-                Ok(protocol::Message::Hello {
-                    num_connections,
-                    connection_info,
-                    debug_info,
-                }) => {
-                    handler.on_hello(connection_info, num_connections, debug_info);
-                }
-                Ok(protocol::Message::Disconnect { reason, .. }) => {
-                    return match reason {
-                        "refresh_requested" => Ok(DisconnectReason::RefreshRequested),
-                        s => Ok(DisconnectReason::Other(String::from(s))),
-                    }
-                }
-                Ok(protocol::Message::EventsApi { envelope_id, payload }) => {
-                    ws.send(tungstenite::Message::text(
-                        serde_json::to_string(&protocol::Acknowledge {
-                            envelope_id: &envelope_id,
-                            payload: None,
-                        })
-                        .expect("Failed to serialize ack"),
-                    ))
-                    .await?;
+            tungstenite::Message::Text(t) => {
+                log::trace!("incoming: {:?}", t);
 
-                    handler.on_events_api(payload);
-                }
-                Err(e) => {
-                    log::error!("Failed to parse incoming message: {}: {:?}", t, e);
+                match serde_json::from_str(&t) {
+                    Ok(protocol::Message::Hello {
+                        num_connections,
+                        connection_info,
+                        debug_info,
+                    }) => {
+                        handler.on_hello(connection_info, num_connections, debug_info);
+                    }
+                    Ok(protocol::Message::Disconnect { reason, .. }) => {
+                        return match reason {
+                            "refresh_requested" => Ok(DisconnectReason::RefreshRequested),
+                            s => Ok(DisconnectReason::Other(String::from(s))),
+                        }
+                    }
+                    Ok(protocol::Message::EventsApi { envelope_id, payload }) => {
+                        ws.send(tungstenite::Message::text(
+                            serde_json::to_string(&protocol::Acknowledge {
+                                envelope_id: &envelope_id,
+                                payload: None,
+                            })
+                            .expect("Failed to serialize ack"),
+                        ))
+                        .await?;
+
+                        handler.on_events_api(payload);
+                    }
+                    Err(e) => {
+                        log::error!("Failed to parse incoming message: {}: {:?}", t, e);
+                    }
                 }
             },
             tungstenite::Message::Ping(p) => {
