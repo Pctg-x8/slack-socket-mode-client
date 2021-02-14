@@ -18,7 +18,7 @@ pub trait EventHandler {
     fn on_events_api(&mut self, payload: protocol::EventsApiPayload) {}
 }
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum DisconnectReason {
     RefreshRequested,
     Other(String),
