@@ -1,7 +1,7 @@
 //! JSON Types
 
 use serde::{Deserialize, Serialize};
-mod events_api;
+pub mod events_api;
 
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "snake_case", tag = "type")]
